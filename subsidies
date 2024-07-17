@@ -1,0 +1,54 @@
+// Assuming you have defined 'player' and 'newRegion' elsewhere in your script
+
+// Maintain a dictionary to store player region preferences
+const playerRegionPreferences = {}; // Key: player.UserId, Value: region
+
+// Maintain a dictionary to track the last region switch timestamp
+const lastRegionSwitchTimestamp = {}; // Key: player.UserId, Value: timestamp
+
+// Cooldown duration (in seconds) between region switches
+const REGION_SWITCH_COOLDOWN = 300; // 5 minutes
+
+async function switchRegion(player, newRegion) {
+  try {
+    // Check if the player is within the cooldown period
+    const currentTime = os.time();
+    const lastSwitchTime = lastRegionSwitchTimestamp[player.UserId] || 0;
+    if (currentTime - lastSwitchTime < REGION_SWITCH_COOLDOWN) {
+      console.warn(`Region switch cooldown active for ${player.Name}. Please wait.`);
+      return;
+    }
+
+    // Update the player's region preference
+    playerRegionPreferences[player.UserId] = newRegion;
+
+    // Teleport the player to the chosen VIP server in the new region
+    await teleportPlayerToRegion(player, newRegion);
+
+    // Update the last region switch timestamp
+    lastRegionSwitchTimestamp[player.UserId] = currentTime;
+
+    // Send a confirmation message to the player
+    player.SendNotification(`You've switched to the ${newRegion} region!`);
+  } catch (error) {
+    console.error(`Error switching regions for ${player.Name}: ${error.message}`);
+    player.SendNotification('Error switching regions. Please try again later.');
+  }
+}
+
+// Implement the teleportPlayerToRegion function using the Roblox API
+async function teleportPlayerToRegion(player, region) {
+  // Look up the VIP server associated with the chosen region
+  const availableServers = availableServersByRegion[region];
+  if (!availableServers || availableServers.length === 0) {
+    console.warn(`No available VIP servers for region: ${region}`);
+    // Handle fallback (e.g., default to a central server)
+    return;
+  }
+
+  // Choose an available server (you can implement custom logic here)
+  const chosenServer = availableServers[0];
+
+  // Teleport the player to the chosen VIP server
+  await teleportPlayerAsyncAPI(placeId, player, chosenServer);
+}
